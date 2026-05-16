@@ -1,80 +1,121 @@
-import heapq
+import networkx as nx
+import matplotlib.pyplot as plt
 
 class FlightRoutePlanner:
+
     def __init__(self):
-        self.graph = {}
 
-    def add_airport(self, airport):
-        if airport not in self.graph:
-            self.graph[airport] = {}
+        self.graph = {
+            "Riyadh": {
+                "Jeddah": {
+                    "distance": 950,
+                    "duration": "1h 40m",
+                    "go": {"dep": "08:00", "arr": "09:40"},
+                    "back": {"dep": "14:00", "arr": "15:40"}
+                },
+                "Abha": {
+                    "distance": 850,
+                    "duration": "1h 20m",
+                    "go": {"dep": "10:00", "arr": "11:20"},
+                    "back": {"dep": "16:00", "arr": "17:20"}
+                }
+            },
 
-    def add_route(self, from_airport, to_airport, distance, time):
-        self.add_airport(from_airport)
-        self.add_airport(to_airport)
+            "Jeddah": {
+                "Cairo": {
+                    "distance": 1200,
+                    "duration": "2h",
+                    "go": {"dep": "18:00", "arr": "20:00"},
+                    "back": {"dep": "21:00", "arr": "23:00"}
+                }
+            },
 
-        self.graph[from_airport][to_airport] = {
-            "distance": distance,
-            "time": time
+            "Dammam": {
+                "Doha": {
+                    "distance": 390,
+                    "duration": "1h",
+                    "go": {"dep": "12:00", "arr": "13:00"},
+                    "back": {"dep": "18:00", "arr": "19:00"}
+                }
+            },
+
+            "Abha": {
+                "Riyadh": {
+                    "distance": 850,
+                    "duration": "1h 20m",
+                    "go": {"dep": "09:00", "arr": "10:20"},
+                    "back": {"dep": "17:00", "arr": "18:20"}
+                }
+            },
+
+            "UAE": {
+                "London": {
+                    "distance": 5500,
+                    "duration": "7h 30m",
+                    "go": {"dep": "07:00", "arr": "14:30"},
+                    "back": {"dep": "16:00", "arr": "23:30"}
+                }
+            }
         }
 
-    def show_routes(self):
-        print("Available Flight Routes:")
-        for airport in self.graph:
-            print(f"\nFrom {airport}:")
-            if self.graph[airport]:
-                for destination, info in self.graph[airport].items():
-                    print(f"  -> {destination} | Distance: {info['distance']} km | Time: {info['time']} min")
-            else:
-                print("  No outgoing routes")
+    def draw_city(self, city_name):
 
-    def shortest_path(self, start, end):
-        if start not in self.graph or end not in self.graph:
-            print("Airport not found.")
-            return
+        G = nx.DiGraph()
+        table_data = []
 
-        queue = [(0, start, [])]
-        visited = set()
+        for dest, info in self.graph[city_name].items():
 
-        while queue:
-            current_time, current_airport, path = heapq.heappop(queue)
+            G.add_edge(city_name, dest)
 
-            if current_airport in visited:
-                continue
+            table_data.append([
+                f"{city_name} → {dest}",
+                f"{info['distance']} km",
+                info['duration'],
+                f"{info['go']['dep']} → {info['go']['arr']}",
+                f"{info['back']['dep']} → {info['back']['arr']}"
+            ])
 
-            visited.add(current_airport)
-            path = path + [current_airport]
+        pos = nx.spring_layout(G, seed=10, k=2.5)
 
-            if current_airport == end:
-                print("\nShortest Route Found:")
-                print(" -> ".join(path))
-                print(f"Total Time: {current_time} minutes")
-                return
+        fig, ax = plt.subplots(figsize=(11, 6))
 
-            for neighbor, info in self.graph[current_airport].items():
-                if neighbor not in visited:
-                    total_time = current_time + info["time"]
-                    heapq.heappush(queue, (total_time, neighbor, path))
+        nx.draw(
+            G,
+            pos,
+            with_labels=True,
+            node_color="lightblue",
+            node_size=3000,
+            font_size=11,
+            font_weight="bold",
+            arrows=True,
+            arrowsize=18,
+            ax=ax
+        )
 
-        print("No route found between the selected airports.")
+        table = plt.table(
+            cellText=table_data,
+            colLabels=[
+                "Route",
+                "Distance (km)",
+                "Duration",
+                "Go Time",
+                "Return Time"
+            ],
+            loc="bottom",
+            cellLoc="center"
+        )
+
+        table.scale(1, 1.5)
+
+        plt.title(f"✈️ Flight Details - {city_name}", fontsize=14)
+        plt.axis("off")
+        plt.show()
 
 
-# Create the flight planner
 planner = FlightRoutePlanner()
 
-# Add real-like airport routes
-planner.add_route("LHR", "AMS", 371, 80)    # London to Amsterdam
-planner.add_route("LHR", "CDG", 348, 80)    # London to Paris
-planner.add_route("LHR", "MUC", 943, 115)   # London to Munich
-planner.add_route("AMS", "MUC", 664, 95)    # Amsterdam to Munich
-planner.add_route("AMS", "DXB", 5160, 390)  # Amsterdam to Dubai
-planner.add_route("CDG", "DXB", 5245, 410)  # Paris to Dubai
-planner.add_route("MUC", "RUH", 4010, 330)  # Munich to Riyadh
-planner.add_route("DXB", "RUH", 875, 110)   # Dubai to Riyadh
-planner.add_route("RUH", "JED", 852, 95)    # Riyadh to Jeddah
-planner.add_route("JED", "CAI", 1215, 130)  # Jeddah to Cairo
-
-# Display all routes
-planner.show_routes()
-
-# Find shortest path by flight time
-planner.shortest_path("LHR", "RUH")
+planner.draw_city("Riyadh")
+planner.draw_city("Jeddah")
+planner.draw_city("Dammam")
+planner.draw_city("Abha")
+planner.draw_city("UAE")
